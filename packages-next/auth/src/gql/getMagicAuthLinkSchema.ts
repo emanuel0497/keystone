@@ -59,9 +59,10 @@ export function getMagicAuthLinkSchema({
         async [gqlNames.sendItemMagicAuthLink](root: any, args: any, ctx: any) {
           const list = ctx.keystone.lists[listKey];
           const identity = args[identityField];
-          const result = await updateAuthToken(
+          const { success, code, itemId, token } = await updateAuthToken(
             'magicAuth',
             list,
+            listKey,
             identityField,
             protectIdentities,
             identity,
@@ -69,29 +70,28 @@ export function getMagicAuthLinkSchema({
           );
 
           // Note: `success` can be false with no code
-          if (!result.success && result.code) {
-            const message = getAuthTokenErrorMessage({
-              identityField,
-              itemSingular: list.adminUILabels.singular,
-              itemPlural: list.adminUILabels.plural,
-              code: result.code,
-            });
-            return { code: result.code, message };
+          if (!success && code) {
+            return {
+              code,
+              message: getAuthTokenErrorMessage({
+                identityField,
+                itemSingular: list.adminUILabels.singular,
+                itemPlural: list.adminUILabels.plural,
+                code,
+              }),
+            };
           }
-          if (result.success) {
-            await magicAuthLink.sendToken({
-              itemId: result.itemId,
-              identity,
-              token: result.token,
-            });
+          if (success) {
+            await magicAuthLink.sendToken({ itemId, identity, token });
           }
           return null;
         },
         async [gqlNames.redeemItemMagicAuthToken](root: any, args: any, ctx: any) {
           const list = ctx.keystone.lists[listKey];
-          const result = await redeemAuthToken(
+          const { success, code, item } = await redeemAuthToken(
             'magicAuth',
             list,
+            listKey,
             identityField,
             protectIdentities,
             magicAuthLink.tokensValidForMins,
@@ -99,19 +99,20 @@ export function getMagicAuthLinkSchema({
             ctx
           );
 
-          if (!result.success) {
-            const message = getAuthTokenErrorMessage({
-              identityField,
-              itemSingular: list.adminUILabels.singular,
-              itemPlural: list.adminUILabels.plural,
-              code: result.code,
-            });
-
-            return { code: result.code, message };
+          if (!success) {
+            return {
+              code,
+              message: getAuthTokenErrorMessage({
+                identityField,
+                itemSingular: list.adminUILabels.singular,
+                itemPlural: list.adminUILabels.plural,
+                code,
+              }),
+            };
           }
 
-          const sessionToken = await ctx.startSession({ listKey: 'User', itemId: result.item.id });
-          return { token: sessionToken, item: result.item };
+          const sessionToken = await ctx.startSession({ listKey: 'User', itemId: item.id });
+          return { token: sessionToken, item };
         },
       },
 

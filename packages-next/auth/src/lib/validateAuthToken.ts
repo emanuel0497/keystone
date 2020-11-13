@@ -13,16 +13,11 @@ export async function validateAuthToken(
   identityField: string,
   protectIdentities: boolean,
   tokenValidMins: number | undefined,
-  args: Record<string, string>
+  args: Record<string, string>,
+  context: any,
 ): Promise<
-  | {
-      success: false;
-      code: AuthTokenRedemptionErrorCode;
-    }
-  | {
-      success: true;
-      item: { id: any; [prop: string]: any };
-    }
+  | { success: false; code: AuthTokenRedemptionErrorCode }
+  | { success: true; item: { id: any; [prop: string]: any } }
 > {
   const fieldKeys = {
     token: `${tokenType}Token`,
@@ -34,8 +29,7 @@ export async function validateAuthToken(
   const canidatePlaintext = args.token;
 
   // TODO: Allow additional filters to be suppled in config? eg. `validUserConditions: { isEnable: true, isVerified: true, ... }`
-  // TODO: Maybe talk to the list rather than the adapter? (Might not validate the filters though)
-  const items = await list.adapter.find({ [identityField]: identity });
+  const items = await context.lists[listKey].findMany({ [identityField]: identity });
 
   // Check the for identity-related failures first
   let specificCode: AuthTokenRedemptionErrorCode | undefined;
@@ -51,20 +45,14 @@ export async function validateAuthToken(
     if (protectIdentities) {
       await tokenFieldInstance.generateHash('simulated-password-to-counter-timing-attack');
     }
-    return {
-      success: false,
-      code: protectIdentities ? 'FAILURE' : specificCode,
-    };
+    return { success: false, code: protectIdentities ? 'FAILURE' : specificCode };
   }
 
   // Check for non-identity failures
   const item = items[0];
   const isMatch = await tokenFieldInstance.compare(canidatePlaintext, item[fieldKeys.token]);
   if (!isMatch) {
-    return {
-      success: false,
-      code: protectIdentities ? 'FAILURE' : 'TOKEN_MISMATCH',
-    };
+    return { success: false, code: protectIdentities ? 'FAILURE' : 'TOKEN_MISMATCH' };
   }
 
   // Now that we know the identity and token are valid, we can always return 'helpful' errors and stop worrying about protectIdentities

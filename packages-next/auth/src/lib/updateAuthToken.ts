@@ -1,3 +1,4 @@
+import { updateItem } from '@keystonejs/server-side-graphql-client';
 import { AuthTokenRequestErrorCode } from '../types';
 import { generateToken } from './generateToken';
 
@@ -5,21 +6,15 @@ import { generateToken } from './generateToken';
 // We don't (currently) make any effort to mitigate the time taken to record the new token or sent the email when successful
 export async function updateAuthToken(
   tokenType: 'passwordReset' | 'magicAuth',
+  listKey: string,
   list: any,
   identityField: string,
   protectIdentities: boolean,
   identity: string,
-  ctx: any
+  context: any
 ): Promise<
-  | {
-      success: false;
-      code?: AuthTokenRequestErrorCode;
-    }
-  | {
-      success: true;
-      itemId: string | number;
-      token: string;
-    }
+  | { success: false; code?: AuthTokenRequestErrorCode }
+  | { success: true; itemId: string | number; token: string }
 > {
   const items = await list.adapter.find({ [identityField]: identity });
 
@@ -35,24 +30,19 @@ export async function updateAuthToken(
     return { success: false, code: protectIdentities ? undefined : specificCode };
   }
 
-  const item = items[0];
-  const token = generateToken(20);
-
   // Save the token and related info back to the item
-  const { errors } = await ctx.keystone.executeGraphQL({
-    context: ctx.keystone.createContext({ skipAccessControl: true }),
-    query: `mutation($id: String, $token: String, $now: String) {
-      ${list.gqlNames.updateMutationName}(id: $id, data: {
-        ${tokenType}Token: $token,
-        ${tokenType}IssuedAt: $now,
-        ${tokenType}RedeemedAt: null
-      }) { id }
-    }`,
-    variables: { id: item.id, token, now: new Date().toISOString() },
+  await updateItem({
+    context,
+    listKey,
+    item: {
+      id: items[0].id,
+      data: {
+        [`${tokenType}Token`]: generateToken(20),
+        [`${tokenType}IssuedAt`]: new Date().toISOString(),
+        [`${tokenType}RedeemedAt`]: null,
+      },
+    },
   });
-  if (Array.isArray(errors) && errors.length > 0) {
-    throw errors[0];
-  }
 
   return { success: true, itemId: item.id, token };
 }
