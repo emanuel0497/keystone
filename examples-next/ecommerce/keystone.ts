@@ -18,36 +18,35 @@ const sessionConfig = {
   secret: process.env.COOKIE_SECRET || '',
 };
 
-const { withAuth } = createAuth({
-  listKey: 'User',
-  identityField: 'email',
-  secretField: 'password',
-  initFirstItem: {
-    fields: ['name', 'email', 'password'],
-    itemData: {
-      permissions: 'ADMIN',
+export default config({
+  db: {
+    adapter: 'mongoose',
+    url: databaseUrl,
+    onConnect: async keystone => {
+      if (process.argv.includes('--seed-data')) {
+        insertSeedData(keystone);
+      }
     },
   },
-});
-
-export default withAuth(
-  config({
-    db: {
-      adapter: 'mongoose',
-      url: databaseUrl,
-      onConnect: async keystone => {
-        if (process.argv.includes('--seed-data')) {
-          insertSeedData(keystone);
-        }
+  lists,
+  extendGraphqlSchema,
+  ui: {
+    isAccessAllowed: ({ session }) => !!session,
+  },
+  session: withItemData(statelessSessions(sessionConfig), {
+    User: 'name permissions',
+  }),
+  plugins: [
+    createAuth({
+      listKey: 'User',
+      identityField: 'email',
+      secretField: 'password',
+      initFirstItem: {
+        fields: ['name', 'email', 'password'],
+        itemData: {
+          permissions: 'ADMIN',
+        },
       },
-    },
-    lists,
-    extendGraphqlSchema,
-    ui: {
-      isAccessAllowed: ({ session }) => !!session,
-    },
-    session: withItemData(statelessSessions(sessionConfig), {
-      User: 'name permissions',
-    }),
-  })
-);
+    }).withAuth,
+  ],
+});
