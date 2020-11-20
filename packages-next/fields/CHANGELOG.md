@@ -1,5 +1,18 @@
 # @keystone-next/fields
 
+## 3.1.0
+
+### Minor Changes
+
+- [`2d5f78207`](https://github.com/keystonejs/keystone/commit/2d5f78207103caaf8f86a4dd05b7e4b0a4795213) [#4302](https://github.com/keystonejs/keystone/pull/4302) Thanks [@mitchellhamilton](https://github.com/mitchellhamilton)! - Exposed RelationshipSelect in an entrypoint
+
+### Patch Changes
+
+- Updated dependencies [[`c62a35fe0`](https://github.com/keystonejs/keystone/commit/c62a35fe0834ec60e2472b22feedda539d18a918), [`add3f67e3`](https://github.com/keystonejs/keystone/commit/add3f67e379caebbcf0880b4ce82cf6a1e89020b), [`2d5f78207`](https://github.com/keystonejs/keystone/commit/2d5f78207103caaf8f86a4dd05b7e4b0a4795213)]:
+  - @keystonejs/fields@20.1.1
+  - @keystone-next/types@4.1.0
+  - @keystone-next/admin-ui@3.1.0
+
 ## 3.0.1
 
 ### Patch Changes
